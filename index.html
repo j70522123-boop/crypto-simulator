@@ -109,6 +109,59 @@
             margin-bottom: 8px;
         }
         
+        /* Esports HUD */
+        .esports-hud {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #1a1d29 0%, #2b3139 100%);
+            border: 2px solid #f0b90b;
+            border-radius: 12px;
+            padding: 15px 30px;
+            display: flex;
+            gap: 40px;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(240, 185, 11, 0.3);
+        }
+        
+        .esports-hud.hidden {
+            display: none;
+        }
+        
+        .hud-item {
+            text-align: center;
+        }
+        
+        .hud-label {
+            display: block;
+            font-size: 12px;
+            color: #848e9c;
+            margin-bottom: 5px;
+        }
+        
+        .hud-value {
+            display: block;
+            font-size: 20px;
+            font-weight: bold;
+            color: #f0b90b;
+        }
+        
+        .hud-value.warning {
+            color: #f6465d;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
         /* Header */
         .header {
             background: #1a1d29;
@@ -581,7 +634,37 @@
                         <li>✓ 土豪專屬</li>
                     </ul>
                 </div>
+                <div class="mode-card" onclick="selectMode('esports')">
+                    <div class="mode-icon">🏆</div>
+                    <h3>電競模式</h3>
+                    <p class="mode-amount">限時挑戰</p>
+                    <ul class="mode-features">
+                        <li>✓ 30分鐘限時</li>
+                        <li>✓ 排行榜競爭</li>
+                        <li>✓ 全球排名</li>
+                    </ul>
+                </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Esports HUD -->
+    <div id="esportsHUD" class="esports-hud hidden">
+        <div class="hud-item">
+            <span class="hud-label">⏱️ 剩餘時間</span>
+            <span class="hud-value" id="timer">30:00</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">🏆 排名</span>
+            <span class="hud-value" id="rank">#1</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">📈 報酬率</span>
+            <span class="hud-value" id="roi">+0.00%</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">🎯 任務</span>
+            <span class="hud-value" id="mission">0/3</span>
         </div>
     </div>
 
@@ -691,19 +774,27 @@
         // Start Mode Selection
         function selectMode(mode) {
             const modes = {
-                beginner: { balance: 10000, maxLeverage: 100, name: '新手模式' },
-                trader: { balance: 100000, maxLeverage: 50, name: '交易員模式' },
-                degen: { balance: 1000, maxLeverage: 100, name: '賭徒模式' },
-                whale: { balance: 10000000, maxLeverage: 20, name: '巨鯨模式' }
+                beginner: { balance: 10000, maxLeverage: 100, name: '新手模式', timeLimit: null },
+                trader: { balance: 100000, maxLeverage: 50, name: '交易員模式', timeLimit: null },
+                degen: { balance: 1000, maxLeverage: 100, name: '賭徒模式', timeLimit: null },
+                whale: { balance: 10000000, maxLeverage: 20, name: '巨鯨模式', timeLimit: null },
+                esports: { balance: 10000, maxLeverage: 50, name: '電競模式', timeLimit: 1800 }
             };
             
             const selected = modes[mode];
             usdtBalance = selected.balance;
             maxLeverage = selected.maxLeverage;
             currentMode = selected.name;
+            timeLimit = selected.timeLimit;
             
             // Hide modal
             document.getElementById('startModal').classList.add('hidden');
+            
+            // Show esports HUD if in esports mode
+            if (mode === 'esports') {
+                document.getElementById('esportsHUD').classList.remove('hidden');
+                startEsportsMode();
+            }
             
             // Update UI
             updateTotalValue();
@@ -713,6 +804,117 @@
             setTimeout(() => {
                 alert(`🎉 歡迎來到${selected.name}！\n起始資金: $${selected.balance.toLocaleString()}\n祝你好運！`);
             }, 100);
+        }
+        
+        // Esports Mode
+        let timeRemaining = 1800;
+        let esportsTimer = null;
+        let missions = [
+            { name: '首次獲利', completed: false, check: () => totalProfit > 0 },
+            { name: '報酬率 10%', completed: false, check: () => roi >= 10 },
+            { name: '報酬率 50%', completed: false, check: () => roi >= 50 }
+        ];
+        
+        function startEsportsMode() {
+            timeRemaining = 1800;
+            updateEsportsHUD();
+            
+            esportsTimer = setInterval(() => {
+                timeRemaining--;
+                updateEsportsHUD();
+                checkMissions();
+                
+                if (timeRemaining <= 0) {
+                    endEsportsMode();
+                }
+            }, 1000);
+        }
+        
+        function updateEsportsHUD() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            const timerEl = document.getElementById('timer');
+            timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (timeRemaining <= 60) {
+                timerEl.classList.add('warning');
+            }
+            
+            // Calculate ROI
+            const initialBalance = 10000;
+            const currentValue = usdtBalance + (btcBalance * btcPrice);
+            roi = ((currentValue - initialBalance) / initialBalance) * 100;
+            document.getElementById('roi').textContent = (roi >= 0 ? '+' : '') + roi.toFixed(2) + '%';
+            document.getElementById('roi').style.color = roi >= 0 ? '#0ecb81' : '#f6465d';
+            
+            // Update mission count
+            const completedMissions = missions.filter(m => m.completed).length;
+            document.getElementById('mission').textContent = `${completedMissions}/${missions.length}`;
+            
+            // Simulate rank based on ROI
+            let rank = 1;
+            if (roi < 0) rank = Math.floor(Math.random() * 50) + 50;
+            else if (roi < 10) rank = Math.floor(Math.random() * 20) + 20;
+            else if (roi < 50) rank = Math.floor(Math.random() * 10) + 5;
+            else rank = Math.floor(Math.random() * 3) + 1;
+            document.getElementById('rank').textContent = '#' + rank;
+        }
+        
+        function checkMissions() {
+            missions.forEach(mission => {
+                if (!mission.completed && mission.check()) {
+                    mission.completed = true;
+                    showMissionComplete(mission.name);
+                }
+            });
+        }
+        
+        function showMissionComplete(name) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 150px;
+                right: 20px;
+                background: linear-gradient(135deg, #f0b90b, #ff6b35);
+                color: #0b0e11;
+                padding: 15px 25px;
+                border-radius: 8px;
+                font-weight: bold;
+                z-index: 1000;
+                animation: slideIn 0.5s ease;
+            `;
+            notification.innerHTML = `🎯 任務完成: ${name}!`;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        function endEsportsMode() {
+            clearInterval(esportsTimer);
+            
+            const initialBalance = 10000;
+            const finalValue = usdtBalance + (btcBalance * btcPrice);
+            const profit = finalValue - initialBalance;
+            const finalRoi = ((finalValue - initialBalance) / initialBalance) * 100;
+            
+            let rank;
+            if (finalRoi < 0) rank = '銅牌';
+            else if (finalRoi < 20) rank = '銀牌';
+            else if (finalRoi < 50) rank = '金牌';
+            else rank = '王者';
+            
+            alert(`🏆 挑戰結束！\n\n` +
+                  `最終資產: $${finalValue.toFixed(2)}\n` +
+                  `盈虧: $${profit.toFixed(2)}\n` +
+                  `報酬率: ${finalRoi.toFixed(2)}%\n` +
+                  `段位: ${rank}\n\n` +
+                  `任務完成: ${missions.filter(m => m.completed).length}/${missions.length}`);
+            
+            // Reset
+            document.getElementById('esportsHUD').classList.add('hidden');
+            document.getElementById('startModal').classList.remove('hidden');
         }
         
         function updateLeverageButtons() {
@@ -732,6 +934,9 @@
         let leverage = 1;
         let maxLeverage = 100;
         let currentMode = '新手模式';
+        let timeLimit = null;
+        let roi = 0;
+        let totalProfit = 0;
         let btcPrice = 45234.56;
         let previousPrice = 45234.56;
         let usdtBalance = 10000;
