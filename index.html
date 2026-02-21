@@ -2,13 +2,17 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0b0e11">
     <title>幣圈模擬器 - 虛擬貨幣交易學習平台</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/Icon-192.png">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0e11; color: #eaecef; min-height: 100vh; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0e11; color: #eaecef; min-height: 100vh; touch-action: manipulation; }
+        canvas { touch-action: none; }
         .modal { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 14, 17, 0.95); z-index: 1000; justify-content: center; align-items: center; }
         .modal.hidden { display: none; }
         .modal-content { background: #1a1d29; padding: 40px; border-radius: 16px; max-width: 1000px; width: 90%; text-align: center; }
@@ -314,28 +318,9 @@
         function setupCandleInteraction() {
             const canvas = document.getElementById('priceChart');
             
+            // Mouse events
             canvas.addEventListener('mousemove', (e) => {
-                const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                const w = canvas.width, h = canvas.height;
-                const padding = { top: 10, right: 60, bottom: 20, left: 10 };
-                const cw = w - padding.left - padding.right;
-                const spacing = cw / candleData.length;
-                
-                // Find which candle is hovered
-                const candleIndex = Math.floor((x - padding.left) / spacing);
-                
-                if (candleIndex >= 0 && candleIndex < candleData.length) {
-                    hoveredCandle = candleIndex;
-                    drawCandleChart(); // Redraw to show highlight
-                    showCandleTooltip(candleData[candleIndex], e.clientX, e.clientY);
-                } else {
-                    hoveredCandle = null;
-                    drawCandleChart();
-                    hideCandleTooltip();
-                }
+                handleCanvasMove(e.clientX, e.clientY, canvas);
             });
             
             canvas.addEventListener('mouseleave', () => {
@@ -344,20 +329,66 @@
                 hideCandleTooltip();
             });
             
-            // Click to select candle
             canvas.addEventListener('click', (e) => {
-                const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const w = canvas.width;
-                const padding = { top: 10, right: 60, bottom: 20, left: 10 };
-                const cw = w - padding.left - padding.right;
-                const spacing = cw / candleData.length;
-                const candleIndex = Math.floor((x - padding.left) / spacing);
-                
-                if (candleIndex >= 0 && candleIndex < candleData.length) {
-                    selectCandle(candleData[candleIndex], candleIndex);
-                }
+                handleCanvasClick(e.clientX, canvas);
             });
+            
+            // Touch events for mobile
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                handleCanvasMove(touch.clientX, touch.clientY, canvas);
+            }, { passive: false });
+            
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                handleCanvasMove(touch.clientX, touch.clientY, canvas);
+            }, { passive: false });
+            
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                const touch = e.changedTouches[0];
+                handleCanvasClick(touch.clientX, canvas);
+                hideCandleTooltip();
+            }, { passive: false });
+        }
+        
+        function handleCanvasMove(clientX, clientY, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            
+            const w = canvas.width, h = canvas.height;
+            const padding = { top: 10, right: 60, bottom: 20, left: 10 };
+            const cw = w - padding.left - padding.right;
+            const spacing = cw / candleData.length;
+            
+            const candleIndex = Math.floor((x - padding.left) / spacing);
+            
+            if (candleIndex >= 0 && candleIndex < candleData.length) {
+                hoveredCandle = candleIndex;
+                drawCandleChart();
+                showCandleTooltip(candleData[candleIndex], clientX, clientY);
+            } else {
+                hoveredCandle = null;
+                drawCandleChart();
+                hideCandleTooltip();
+            }
+        }
+        
+        function handleCanvasClick(clientX, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const w = canvas.width;
+            const padding = { top: 10, right: 60, bottom: 20, left: 10 };
+            const cw = w - padding.left - padding.right;
+            const spacing = cw / candleData.length;
+            const candleIndex = Math.floor((x - padding.left) / spacing);
+            
+            if (candleIndex >= 0 && candleIndex < candleData.length) {
+                selectCandle(candleData[candleIndex], candleIndex);
+            }
         }
         
         function showCandleTooltip(candle, mouseX, mouseY) {
