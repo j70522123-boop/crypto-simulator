@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幣圈模擬器</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            background: #0b0e11; 
+            color: #eaecef; 
+            margin: 0; 
+            padding: 10px;
+            font-size: 14px;
+        }
+        .header { 
+            background: #1a1d29; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .logo { color: #f0b90b; font-size: 18px; font-weight: bold; }
+        .price-box { 
+            background: #1a1d29; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .price { font-size: 32px; font-weight: bold; }
+        .price.up { color: #0ecb81; }
+        .price.down { color: #f6465d; }
+        .change { font-size: 14px; margin-top: 5px; }
+        .chart-box { 
+            background: #1a1d29; 
+            padding: 10px; 
+            border-radius: 8px; 
+            margin-bottom: 10px;
+            height: 200px;
+        }
+        .trade-box { 
+            background: #1a1d29; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 10px;
+        }
+        .balance { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #2b3139;
+            border-radius: 6px;
+        }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn { 
+            flex: 1; 
+            padding: 12px; 
+            border: none; 
+            border-radius: 6px; 
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-buy { background: #0ecb81; color: white; }
+        .btn-sell { background: #f6465d; color: white; }
+        .btn-mode { 
+            background: #f0b90b; 
+            color: #0b0e11; 
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+        }
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            background: #2b3139; 
+            border: 1px solid #3d4654; 
+            color: #eaecef; 
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        .hidden { display: none; }
+        #modeSelect { text-align: center; padding: 20px; }
+        .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <!-- Mode Selection -->
+    <div id="modeSelect">
+        <div class="logo" style="font-size: 24px; margin-bottom: 10px;">⚡ 幣圈模擬器</div>
+        <p style="color: #848e9c; margin-bottom: 20px;">選擇開局模式</p>
+        <div class="mode-grid">
+            <button class="btn-mode" onclick="startGame(10000, '新手')">🌱 新手<br>$10,000</button>
+            <button class="btn-mode" onclick="startGame(100000, '交易員')">📈 交易員<br>$100,000</button>
+            <button class="btn-mode" onclick="startGame(1000, '賭徒')">🚀 賭徒<br>$1,000</button>
+            <button class="btn-mode" onclick="startGame(10000000, '巨鯨')">🐋 巨鯨<br>$10M</button>
+        </div>
+    </div>
+
+    <!-- Trading Interface -->
+    <div id="trading" class="hidden">
+        <div class="header">
+            <div class="logo">⚡ 幣圈模擬器 - <span id="modeName"></span>模式</div>
+        </div>
+
+        <div class="price-box">
+            <div style="color: #848e9c; margin-bottom: 5px;">BTC/USDT</div>
+            <div class="price up" id="currentPrice">$45,000.00</div>
+            <div class="change up" id="priceChange">+0.00%</div>
+        </div>
+
+        <div class="chart-box">
+            <canvas id="chart"></canvas>
+        </div>
+
+        <div class="trade-box">
+            <div class="balance">
+                <span>餘額: $<span id="balance">10000</span></span>
+                <span>BTC: <span id="btc">0.0000</span></span>
+            </div>
+
+            <input type="number" id="amount" placeholder="輸入 BTC 數量" step="0.0001">
+
+            <div class="btn-group">
+                <button class="btn btn-buy" onclick="buy()">買入</button>
+                <button class="btn btn-sell" onclick="sell()">賣出</button>
+            </div>
+
+            <button class="btn-mode" onclick="resetGame()" style="width: 100%;">重新開始</button>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        var balance = 10000;
+        var btc = 0;
+        var btcPrice = 45000;
+        var prices = [];
+        var canvas, ctx;
+
+        // Initialize
+        function init() {
+            canvas = document.getElementById('chart');
+            if (canvas) {
+                ctx = canvas.getContext('2d');
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                
+                // Generate initial prices
+                var price = 45000;
+                for (var i = 0; i < 30; i++) {
+                    prices.push(price);
+                    price = price * (1 + (Math.random() - 0.5) * 0.02);
+                }
+                
+                drawChart();
+                
+                // Update price every 2 seconds
+                setInterval(updatePrice, 2000);
+            }
+        }
+
+        function drawChart() {
+            if (!ctx || !canvas) return;
+            
+            var w = canvas.width;
+            var h = canvas.height;
+            
+            // Clear
+            ctx.fillStyle = '#1a1d29';
+            ctx.fillRect(0, 0, w, h);
+            
+            if (prices.length < 2) return;
+            
+            // Find min/max
+            var minP = prices[0], maxP = prices[0];
+            for (var i = 1; i < prices.length; i++) {
+                if (prices[i] < minP) minP = prices[i];
+                if (prices[i] > maxP) maxP = prices[i];
+            }
+            
+            var range = maxP - minP;
+            if (range === 0) range = 1;
+            
+            // Draw line
+            ctx.strokeStyle = '#0ecb81';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            for (var i = 0; i < prices.length; i++) {
+                var x = (i / (prices.length - 1)) * w;
+                var y = h - ((prices[i] - minP) / range) * h * 0.8 - h * 0.1;
+                
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            
+            ctx.stroke();
+        }
+
+        function updatePrice() {
+            var change = (Math.random() - 0.5) * 0.02;
+            btcPrice = btcPrice * (1 + change);
+            
+            prices.push(btcPrice);
+            if (prices.length > 30) prices.shift();
+            
+            // Update display
+            document.getElementById('currentPrice').textContent = '$' + btcPrice.toFixed(2);
+            
+            var changePct = (change * 100).toFixed(2);
+            var changeEl = document.getElementById('priceChange');
+            changeEl.textContent = (change >= 0 ? '+' : '') + changePct + '%';
+            changeEl.className = 'change ' + (change >= 0 ? 'up' : 'down');
+            
+            var priceEl = document.getElementById('currentPrice');
+            priceEl.className = 'price ' + (change >= 0 ? 'up' : 'down');
+            
+            updateBalance();
+            drawChart();
+        }
+
+        function startGame(startBalance, modeName) {
+            balance = startBalance;
+            btc = 0;
+            document.getElementById('modeName').textContent = modeName;
+            document.getElementById('modeSelect').classList.add('hidden');
+            document.getElementById('trading').classList.remove('hidden');
+            init();
+            updateBalance();
+        }
+
+        function updateBalance() {
+            document.getElementById('balance').textContent = balance.toFixed(2);
+            document.getElementById('btc').textContent = btc.toFixed(4);
+        }
+
+        function buy() {
+            var amount = parseFloat(document.getElementById('amount').value);
+            if (!amount || amount <= 0) {
+                alert('請輸入有效的數量');
+                return;
+            }
+            
+            var cost = amount * btcPrice;
+            if (cost > balance) {
+                alert('餘額不足');
+                return;
+            }
+            
+            balance -= cost;
+            btc += amount;
+            updateBalance();
+            document.getElementById('amount').value = '';
+            alert('買入成功！');
+        }
+
+        function sell() {
+            var amount = parseFloat(document.getElementById('amount').value);
+            if (!amount || amount <= 0) {
+                alert('請輸入有效的數量');
+                return;
+            }
+            
+            if (amount > btc) {
+                alert('BTC 餘額不足');
+                return;
+            }
+            
+            var revenue = amount * btcPrice;
+            balance += revenue;
+            btc -= amount;
+            updateBalance();
+            document.getElementById('amount').value = '';
+            alert('賣出成功！');
+        }
+
+        function resetGame() {
+            if (confirm('確定要重新開始嗎？')) {
+                document.getElementById('trading').classList.add('hidden');
+                document.getElementById('modeSelect').classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
