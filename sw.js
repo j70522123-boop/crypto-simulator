@@ -1,11 +1,11 @@
-const CACHE_NAME = 'crypto-simulator-v1';
+const CACHE_NAME = 'crypto-simulator-v2';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/favicon.png',
-  '/icons/Icon-192.png',
-  '/icons/Icon-512.png'
+  '/crypto-simulator/',
+  '/crypto-simulator/index.html',
+  '/crypto-simulator/manifest.json',
+  '/crypto-simulator/favicon.png',
+  '/crypto-simulator/icons/Icon-192.png',
+  '/crypto-simulator/icons/Icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
