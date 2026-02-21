@@ -175,10 +175,18 @@
     </div>
 
     <script>
-        // Load game mode
-        const gameMode = JSON.parse(localStorage.getItem('gameMode') || '{}');
+        // Load game mode with error handling
+        let gameMode = {};
+        try {
+            const saved = localStorage.getItem('gameMode');
+            gameMode = saved ? JSON.parse(saved) : {};
+        } catch (e) {
+            console.error('Error loading game mode:', e);
+        }
+        
+        // Set defaults if no mode
         if (!gameMode.mode) {
-            window.location.href = 'index.html';
+            gameMode = { mode: 'beginner', name: '新手模式', balance: 10000, maxLeverage: 100 };
         }
         
         // Update UI with mode
