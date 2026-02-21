@@ -1,0 +1,36 @@
+{
+    "name": "幣圈模擬器 - 虛擬貨幣交易學習",
+    "short_name": "幣圈模擬器",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#1a1a2e",
+    "theme_color": "#16213e",
+    "description": "使用虛擬資金學習加密貨幣交易，零風險體驗市場波動。包含即時價格、技術指標、槓桿交易練習。",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "categories": ["finance", "education", "games"],
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
