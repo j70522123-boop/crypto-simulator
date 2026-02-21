@@ -29,6 +29,7 @@
         .hud-value { display: block; font-size: 18px; font-weight: bold; color: #f0b90b; }
         .hud-value.warning { color: #f6465d; animation: pulse 1s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes fadeInOut { 0% { opacity: 0; transform: translateX(-50%) translateY(-10px); } 20% { opacity: 1; transform: translateX(-50%) translateY(0); } 80% { opacity: 1; transform: translateX(-50%) translateY(0); } 100% { opacity: 0; transform: translateX(-50%) translateY(-10px); } }
         .header { background: #1a1d29; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2b3139; }
         .logo { font-size: 20px; font-weight: bold; color: #f0b90b; }
         .main-container { display: flex; max-width: 1400px; margin: 0 auto; padding: 20px; gap: 20px; }
@@ -152,12 +153,12 @@
             
             <div class="chart-container">
                 <div class="chart-toolbar">
-                    <button class="chart-btn active">1分</button>
-                    <button class="chart-btn">5分</button>
-                    <button class="chart-btn">15分</button>
-                    <button class="chart-btn">1小時</button>
-                    <button class="chart-btn">4小時</button>
-                    <button class="chart-btn">1天</button>
+                    <button class="chart-btn active" onclick="changeTimeframe('1m', this)">1分</button>
+                    <button class="chart-btn" onclick="changeTimeframe('5m', this)">5分</button>
+                    <button class="chart-btn" onclick="changeTimeframe('15m', this)">15分</button>
+                    <button class="chart-btn" onclick="changeTimeframe('1h', this)">1小時</button>
+                    <button class="chart-btn" onclick="changeTimeframe('4h', this)">4小時</button>
+                    <button class="chart-btn" onclick="changeTimeframe('1d', this)">1天</button>
                 </div>
                 <div class="chart-info">
                     <div class="chart-info-item"><span class="chart-info-label">開:</span><span class="chart-info-value" id="candleOpen">-</span></div>
@@ -227,6 +228,78 @@
             drawCandleChart();
         };
         window.addEventListener('resize', () => { drawCandleChart(); });
+        
+        // Timeframe switching
+        let currentTimeframe = '1m';
+        let timeframeMultiplier = 1;
+        
+        function changeTimeframe(tf, btn) {
+            currentTimeframe = tf;
+            
+            // Update button styles
+            document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Set multiplier based on timeframe
+            const multipliers = { '1m': 1, '5m': 5, '15m': 15, '1h': 60, '4h': 240, '1d': 1440 };
+            timeframeMultiplier = multipliers[tf] || 1;
+            
+            // Regenerate candle data with new timeframe
+            regenerateCandles();
+            
+            // Show notification
+            showNotification(`切換到 ${tf} 時間週期`);
+        }
+        
+        function regenerateCandles() {
+            candleData = [];
+            let price = 44800;
+            const candleCount = Math.max(20, Math.floor(50 / timeframeMultiplier));
+            
+            for (let i = 0; i < candleCount; i++) {
+                const volatility = 50 * timeframeMultiplier;
+                const open = price;
+                const change = (Math.random() - 0.5) * volatility * 2;
+                const close = open + change;
+                const high = Math.max(open, close) + Math.random() * volatility * 0.5;
+                const low = Math.min(open, close) - Math.random() * volatility * 0.5;
+                const volume = Math.random() * 50 * timeframeMultiplier + 20;
+                
+                candleData.push({ open, high, low, close, volume });
+                price = close;
+            }
+            
+            currentCandle = { 
+                open: price, 
+                high: price, 
+                low: price, 
+                close: price, 
+                volume: 0 
+            };
+            btcPrice = price;
+            updateCandleInfo();
+            drawCandleChart();
+        }
+        
+        function showNotification(msg) {
+            const notif = document.createElement('div');
+            notif.style.cssText = `
+                position: fixed;
+                top: 130px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #f0b90b;
+                color: #0b0e11;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+                z-index: 1000;
+                animation: fadeInOut 2s ease;
+            `;
+            notif.textContent = msg;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 2000);
+        }
         
         // State
         let currentTab = 'buy', leverage = 1, maxLeverage = 100, currentMode = '新手模式';
