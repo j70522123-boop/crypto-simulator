@@ -220,6 +220,14 @@
     </div>
 
     <script>
+        // Force clear cache and init
+        window.onload = function() {
+            console.log('Page loaded, initializing...');
+            initCandles();
+            drawCandleChart();
+        };
+        window.addEventListener('resize', () => { drawCandleChart(); });
+        
         // State
         let currentTab = 'buy', leverage = 1, maxLeverage = 100, currentMode = '新手模式';
         let btcPrice = 45234.56, previousPrice = 45234.56, usdtBalance = 10000, btcBalance = 0;
@@ -433,11 +441,9 @@
             }).join('');
         }
 
-        // Init
-        initCandles();
-        drawCandleChart();
-        window.addEventListener('resize', drawCandleChart);
+        // Register Service Worker
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+    </script>
     </script>
 </body>
 </html>
