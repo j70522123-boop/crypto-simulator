@@ -226,6 +226,7 @@
             console.log('Page loaded, initializing...');
             initCandles();
             drawCandleChart();
+            setupCandleInteraction();
         };
         window.addEventListener('resize', () => { drawCandleChart(); });
         
@@ -307,6 +308,125 @@
         let positions = [], candleData = [], currentCandle = null;
         let timeRemaining = 1800, esportsTimer = null, roi = 0;
 
+        // Candle hover tooltip
+        let hoveredCandle = null;
+        
+        function setupCandleInteraction() {
+            const canvas = document.getElementById('priceChart');
+            
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const w = canvas.width, h = canvas.height;
+                const padding = { top: 10, right: 60, bottom: 20, left: 10 };
+                const cw = w - padding.left - padding.right;
+                const spacing = cw / candleData.length;
+                
+                // Find which candle is hovered
+                const candleIndex = Math.floor((x - padding.left) / spacing);
+                
+                if (candleIndex >= 0 && candleIndex < candleData.length) {
+                    hoveredCandle = candleIndex;
+                    drawCandleChart(); // Redraw to show highlight
+                    showCandleTooltip(candleData[candleIndex], e.clientX, e.clientY);
+                } else {
+                    hoveredCandle = null;
+                    drawCandleChart();
+                    hideCandleTooltip();
+                }
+            });
+            
+            canvas.addEventListener('mouseleave', () => {
+                hoveredCandle = null;
+                drawCandleChart();
+                hideCandleTooltip();
+            });
+            
+            // Click to select candle
+            canvas.addEventListener('click', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const w = canvas.width;
+                const padding = { top: 10, right: 60, bottom: 20, left: 10 };
+                const cw = w - padding.left - padding.right;
+                const spacing = cw / candleData.length;
+                const candleIndex = Math.floor((x - padding.left) / spacing);
+                
+                if (candleIndex >= 0 && candleIndex < candleData.length) {
+                    selectCandle(candleData[candleIndex], candleIndex);
+                }
+            });
+        }
+        
+        function showCandleTooltip(candle, mouseX, mouseY) {
+            let tooltip = document.getElementById('candleTooltip');
+            if (!tooltip) {
+                tooltip = document.createElement('div');
+                tooltip.id = 'candleTooltip';
+                tooltip.style.cssText = `
+                    position: fixed;
+                    background: #1a1d29;
+                    border: 1px solid #3d4654;
+                    border-radius: 8px;
+                    padding: 12px;
+                    font-size: 12px;
+                    z-index: 1000;
+                    pointer-events: none;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+                `;
+                document.body.appendChild(tooltip);
+            }
+            
+            const isUp = candle.close >= candle.open;
+            const change = ((candle.close - candle.open) / candle.open * 100);
+            
+            tooltip.innerHTML = `
+                <div style="color: #848e9c; margin-bottom: 5px;">時間: ${new Date().toLocaleTimeString()}</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div><span style="color: #848e9c;">開:</span> <span style="color: ${isUp ? '#0ecb81' : '#f6465d'};">$${candle.open.toFixed(2)}</span></div>
+                    <div><span style="color: #848e9c;">高:</span> <span style="color: #0ecb81;">$${candle.high.toFixed(2)}</span></div>
+                    <div><span style="color: #848e9c;">低:</span> <span style="color: #f6465d;">$${candle.low.toFixed(2)}</span></div>
+                    <div><span style="color: #848e9c;">收:</span> <span style="color: ${isUp ? '#0ecb81' : '#f6465d'};">$${candle.close.toFixed(2)}</span></div>
+                </div>
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #3d4654;">
+                    <span style="color: #848e9c;">漲跌: </span>
+                    <span style="color: ${isUp ? '#0ecb81' : '#f6465d'}; font-weight: bold;">
+                        ${isUp ? '+' : ''}${change.toFixed(2)}%
+                    </span>
+                </div>
+                <div style="margin-top: 5px;">
+                    <span style="color: #848e9c;">成交量: </span>
+                    <span style="color: #eaecef;">${candle.volume.toFixed(2)} BTC</span>
+                </div>
+            `;
+            
+            tooltip.style.left = (mouseX + 15) + 'px';
+            tooltip.style.top = (mouseY - 10) + 'px';
+            tooltip.style.display = 'block';
+        }
+        
+        function hideCandleTooltip() {
+            const tooltip = document.getElementById('candleTooltip');
+            if (tooltip) tooltip.style.display = 'none';
+        }
+        
+        function selectCandle(candle, index) {
+            // Update the info bar with selected candle data
+            document.getElementById('candleOpen').textContent = candle.open.toFixed(2);
+            document.getElementById('candleHigh').textContent = candle.high.toFixed(2);
+            document.getElementById('candleLow').textContent = candle.low.toFixed(2);
+            document.getElementById('candleClose').textContent = candle.close.toFixed(2);
+            document.getElementById('candleVolume').textContent = candle.volume.toFixed(2) + ' BTC';
+            
+            const isUp = candle.close >= candle.open;
+            document.getElementById('candleClose').className = 'chart-info-value ' + (isUp ? 'up' : 'down');
+            
+            // Show selection notification
+            showNotification(`已選擇第 ${index + 1} 根K線`);
+        }
+        
         // Initialize candle data
         function initCandles() {
             let price = 44800;
@@ -405,6 +525,7 @@
             candleData.forEach((c, i) => {
                 const x = padding.left + i * spacing + spacing / 2;
                 const isUp = c.close >= c.open;
+                const isHovered = (i === hoveredCandle);
                 const color = isUp ? '#0ecb81' : '#f6465d';
                 
                 const oy = padding.top + (maxP - c.open) * scale;
@@ -412,12 +533,19 @@
                 const hy = padding.top + (maxP - c.high) * scale;
                 const ly = padding.top + (maxP - c.low) * scale;
                 
+                // Highlight if hovered
+                if (isHovered) {
+                    ctx.fillStyle = 'rgba(240, 185, 11, 0.2)';
+                    ctx.fillRect(x - spacing/2, padding.top, spacing, ch);
+                }
+                
                 // Wick
-                ctx.strokeStyle = color; ctx.lineWidth = 1;
+                ctx.strokeStyle = isHovered ? '#f0b90b' : color;
+                ctx.lineWidth = isHovered ? 2 : 1;
                 ctx.beginPath(); ctx.moveTo(x, hy); ctx.lineTo(x, ly); ctx.stroke();
                 
                 // Body
-                ctx.fillStyle = color;
+                ctx.fillStyle = isHovered ? '#f0b90b' : color;
                 const top = Math.min(oy, cy);
                 const height = Math.max(Math.abs(cy - oy), 1);
                 ctx.fillRect(x - candleW / 2, top, candleW, height);
