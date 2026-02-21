@@ -1,63 +1,784 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
-  <base href="/crypto-simulator/">
-
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="使用虛擬資金學習加密貨幣交易，零風險體驗市場波動。包含即時價格、技術指標、槓桿交易練習。">
-  <meta name="keywords" content="加密貨幣, 虛擬貨幣, 交易模擬, 比特幣, 學習交易, 投資練習">
-  <meta name="author" content="幣圈模擬器">
-  
-  <!-- Open Graph / Social Media -->
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="幣圈模擬器 - 虛擬貨幣交易學習平台">
-  <meta property="og:description" content="使用虛擬資金學習加密貨幣交易，零風險體驗市場波動。">
-  <meta property="og:image" content="icons/Icon-512.png">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="幣圈模擬器">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>幣圈模擬器 - 虛擬貨幣交易學習平台</title>
-  <link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幣圈模擬器 - 虛擬貨幣交易學習平台</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/Icon-192.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0b0e11;
+            color: #eaecef;
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        .header {
+            background: #1a1d29;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2b3139;
+        }
+        
+        .logo {
+            font-size: 20px;
+            font-weight: bold;
+            color: #f0b90b;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .nav-links a {
+            color: #848e9c;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .nav-links a:hover {
+            color: #f0b90b;
+        }
+        
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        /* Left Panel - Chart */
+        .chart-section {
+            flex: 1;
+            background: #1a1d29;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .symbol-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .symbol-info h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .symbol-info .price {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        
+        .symbol-info .price.up {
+            color: #0ecb81;
+        }
+        
+        .symbol-info .price.down {
+            color: #f6465d;
+        }
+        
+        .change {
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .change.up {
+            color: #0ecb81;
+        }
+        
+        .change.down {
+            color: #f6465d;
+        }
+        
+        /* Chart */
+        .chart-container {
+            height: 400px;
+            background: #0b0e11;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #priceChart {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Right Panel - Trading */
+        .trading-section {
+            width: 350px;
+            background: #1a1d29;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #2b3139;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+        }
+        
+        .tab.active.buy {
+            color: #0ecb81;
+            border-bottom-color: #0ecb81;
+        }
+        
+        .tab.active.sell {
+            color: #f6465d;
+            border-bottom-color: #f6465d;
+        }
+        
+        .tab:hover {
+            background: #2b3139;
+        }
+        
+        /* Balance */
+        .balance-section {
+            background: #2b3139;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .balance-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .balance-row .label {
+            color: #848e9c;
+        }
+        
+        .balance-row .value {
+            font-weight: 500;
+        }
+        
+        .total-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #f0b90b;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #3d4654;
+        }
+        
+        /* Leverage */
+        .leverage-section {
+            margin-bottom: 20px;
+        }
+        
+        .leverage-label {
+            font-size: 14px;
+            color: #848e9c;
+            margin-bottom: 10px;
+        }
+        
+        .leverage-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .leverage-btn {
+            padding: 8px 16px;
+            border: 1px solid #3d4654;
+            background: transparent;
+            color: #eaecef;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .leverage-btn.active {
+            background: #f0b90b;
+            color: #0b0e11;
+            border-color: #f0b90b;
+        }
+        
+        .leverage-btn:hover {
+            border-color: #f0b90b;
+        }
+        
+        /* Order Form */
+        .order-form {
+            margin-bottom: 20px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            color: #848e9c;
+            margin-bottom: 8px;
+        }
+        
+        .input-wrapper {
+            display: flex;
+            background: #2b3139;
+            border: 1px solid #3d4654;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .input-wrapper input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px;
+            color: #eaecef;
+            font-size: 16px;
+            outline: none;
+        }
+        
+        .input-wrapper .unit {
+            padding: 12px 16px;
+            background: #3d4654;
+            color: #848e9c;
+            font-size: 14px;
+        }
+        
+        .percentage-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .percentage-btn {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #3d4654;
+            background: transparent;
+            color: #848e9c;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .percentage-btn:hover {
+            border-color: #f0b90b;
+            color: #f0b90b;
+        }
+        
+        /* Trade Button */
+        .trade-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .trade-btn.buy {
+            background: #0ecb81;
+            color: white;
+        }
+        
+        .trade-btn.sell {
+            background: #f6465d;
+            color: white;
+        }
+        
+        .trade-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .trade-btn:disabled {
+            background: #3d4654;
+            cursor: not-allowed;
+        }
+        
+        /* Order Book */
+        .order-book {
+            margin-top: 20px;
+        }
+        
+        .order-book h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #848e9c;
+        }
+        
+        .order-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 13px;
+        }
+        
+        .order-row .price {
+            flex: 1;
+        }
+        
+        .order-row .price.buy {
+            color: #0ecb81;
+        }
+        
+        .order-row .price.sell {
+            color: #f6465d;
+        }
+        
+        .order-row .amount {
+            flex: 1;
+            text-align: right;
+            color: #848e9c;
+        }
+        
+        /* Positions */
+        .positions-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #2b3139;
+        }
+        
+        .positions-section h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #848e9c;
+        }
+        
+        .position-item {
+            background: #2b3139;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .position-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .position-header .symbol {
+            font-weight: bold;
+        }
+        
+        .position-header .type {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .position-header .type.long {
+            background: rgba(14, 203, 129, 0.2);
+            color: #0ecb81;
+        }
+        
+        .position-header .type.short {
+            background: rgba(246, 70, 93, 0.2);
+            color: #f6465d;
+        }
+        
+        .position-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 13px;
+        }
+        
+        .position-details .label {
+            color: #848e9c;
+        }
+        
+        /* Disclaimer */
+        .disclaimer {
+            background: rgba(240, 185, 11, 0.1);
+            border: 1px solid rgba(240, 185, 11, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #f0b90b;
+            text-align: center;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 900px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .trading-section {
+                width: 100%;
+            }
+            
+            .chart-container {
+                height: 300px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+    <header class="header">
+        <div class="logo">⚡ 幣圈模擬器</div>
+        <nav class="nav-links">
+            <a href="#">交易</a>
+            <a href="#">資產</a>
+            <a href="#">歷史</a>
+        </nav>
+    </header>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
-  <script src="flutter_bootstrap.js" async></script>
-  
-  <!-- PWA Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/crypto-simulator/sw.js');
-      });
-    }
-  </script>
+    <div class="main-container">
+        <!-- Chart Section -->
+        <div class="chart-section">
+            <div class="symbol-header">
+                <div class="symbol-info">
+                    <h1>BTC/USDT</h1>
+                    <div class="price up" id="currentPrice">$45,234.56</div>
+                    <div class="change up" id="priceChange">+1.23% +$548.32</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="priceChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Trading Section -->
+        <div class="trading-section">
+            <div class="tabs">
+                <div class="tab active buy" onclick="switchTab('buy')">買入</div>
+                <div class="tab sell" onclick="switchTab('sell')">賣出</div>
+            </div>
+
+            <!-- Balance -->
+            <div class="balance-section">
+                <div class="balance-row">
+                    <span class="label">可用餘額 (USDT)</span>
+                    <span class="value" id="usdtBalance">10,000.00</span>
+                </div>
+                <div class="balance-row">
+                    <span class="label">BTC 持倉</span>
+                    <span class="value" id="btcBalance">0.000000</span>
+                </div>
+                <div class="total-value">
+                    <span>總資產: $</span><span id="totalValue">10,000.00</span>
+                </div>
+            </div>
+
+            <!-- Leverage -->
+            <div class="leverage-section">
+                <div class="leverage-label">槓桿倍數</div>
+                <div class="leverage-buttons">
+                    <button class="leverage-btn active" data-leverage="1">1x</button>
+                    <button class="leverage-btn" data-leverage="5">5x</button>
+                    <button class="leverage-btn" data-leverage="10">10x</button>
+                    <button class="leverage-btn" data-leverage="20">20x</button>
+                    <button class="leverage-btn" data-leverage="50">50x</button>
+                    <button class="leverage-btn" data-leverage="100">100x</button>
+                </div>
+            </div>
+
+            <!-- Order Form -->
+            <div class="order-form">
+                <div class="input-group">
+                    <label>價格 (USDT)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="orderPrice" placeholder="市價" step="0.01">
+                        <span class="unit">USDT</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>數量 (BTC)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="orderAmount" placeholder="0.00" step="0.000001">
+                        <span class="unit">BTC</span>
+                    </div>
+                    <div class="percentage-buttons">
+                        <button class="percentage-btn" onclick="setPercentage(25)">25%</button>
+                        <button class="percentage-btn" onclick="setPercentage(50)">50%</button>
+                        <button class="percentage-btn" onclick="setPercentage(75)">75%</button>
+                        <button class="percentage-btn" onclick="setPercentage(100)">100%</button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="trade-btn buy" id="tradeButton" onclick="executeTrade()">買入 BTC</button>
+
+            <!-- Positions -->
+            <div class="positions-section">
+                <h3>當前持倉</h3>
+                <div id="positionsList">
+                    <p style="color: #848e9c; text-align: center; padding: 20px;">尚無持倉</p>
+                </div>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="disclaimer">
+                ⚠️ 本 App 僅供娛樂和學習用途，不構成任何投資建議
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentTab = 'buy';
+        let leverage = 1;
+        let btcPrice = 45234.56;
+        let previousPrice = 45234.56;
+        let usdtBalance = 10000;
+        let btcBalance = 0;
+        let positions = [];
+        let priceHistory = [];
+
+        // Initialize price history
+        for (let i = 0; i < 100; i++) {
+            priceHistory.push(45000 + Math.random() * 1000 - 500);
+        }
+
+        // Update price every 2 seconds
+        setInterval(() => {
+            previousPrice = btcPrice;
+            const change = (Math.random() * 0.04 - 0.02);
+            btcPrice = btcPrice * (1 + change);
+            priceHistory.push(btcPrice);
+            if (priceHistory.length > 100) priceHistory.shift();
+            
+            updatePriceDisplay();
+            drawChart();
+        }, 2000);
+
+        function updatePriceDisplay() {
+            const priceEl = document.getElementById('currentPrice');
+            const changeEl = document.getElementById('priceChange');
+            const orderPrice = document.getElementById('orderPrice');
+            
+            priceEl.textContent = '$' + btcPrice.toFixed(2);
+            orderPrice.placeholder = btcPrice.toFixed(2);
+            
+            const change = ((btcPrice - previousPrice) / previousPrice * 100);
+            const changeValue = btcPrice - previousPrice;
+            
+            if (change >= 0) {
+                priceEl.className = 'price up';
+                changeEl.className = 'change up';
+                changeEl.textContent = `+${change.toFixed(2)}% +$${changeValue.toFixed(2)}`;
+            } else {
+                priceEl.className = 'price down';
+                changeEl.className = 'change down';
+                changeEl.textContent = `${change.toFixed(2)}% -$${Math.abs(changeValue).toFixed(2)}`;
+            }
+            
+            updateTotalValue();
+        }
+
+        function updateTotalValue() {
+            const total = usdtBalance + (btcBalance * btcPrice);
+            document.getElementById('totalValue').textContent = total.toFixed(2);
+            document.getElementById('usdtBalance').textContent = usdtBalance.toFixed(2);
+            document.getElementById('btcBalance').textContent = btcBalance.toFixed(6);
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active', 'buy', 'sell'));
+            event.target.classList.add('active', tab);
+            
+            const btn = document.getElementById('tradeButton');
+            btn.className = 'trade-btn ' + tab;
+            btn.textContent = (tab === 'buy' ? '買入' : '賣出') + ' BTC';
+        }
+
+        // Leverage buttons
+        document.querySelectorAll('.leverage-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.leverage-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                leverage = parseInt(btn.dataset.leverage);
+            });
+        });
+
+        function setPercentage(pct) {
+            if (currentTab === 'buy') {
+                const amount = (usdtBalance * pct / 100) / btcPrice * leverage;
+                document.getElementById('orderAmount').value = amount.toFixed(6);
+            } else {
+                const amount = btcBalance * pct / 100;
+                document.getElementById('orderAmount').value = amount.toFixed(6);
+            }
+        }
+
+        function executeTrade() {
+            const amount = parseFloat(document.getElementById('orderAmount').value) || 0;
+            const price = parseFloat(document.getElementById('orderPrice').value) || btcPrice;
+            
+            if (amount <= 0) {
+                alert('請輸入有效的數量');
+                return;
+            }
+            
+            if (currentTab === 'buy') {
+                const cost = (amount * price) / leverage;
+                if (cost > usdtBalance) {
+                    alert('餘額不足');
+                    return;
+                }
+                usdtBalance -= cost;
+                btcBalance += amount;
+                
+                positions.push({
+                    symbol: 'BTC/USDT',
+                    type: 'long',
+                    amount: amount,
+                    entryPrice: price,
+                    leverage: leverage
+                });
+            } else {
+                if (amount > btcBalance) {
+                    alert('BTC 餘額不足');
+                    return;
+                }
+                const revenue = (amount * price) / leverage;
+                usdtBalance += revenue;
+                btcBalance -= amount;
+            }
+            
+            updateTotalValue();
+            updatePositions();
+            document.getElementById('orderAmount').value = '';
+        }
+
+        function updatePositions() {
+            const list = document.getElementById('positionsList');
+            if (positions.length === 0) {
+                list.innerHTML = '<p style="color: #848e9c; text-align: center; padding: 20px;">尚無持倉</p>';
+                return;
+            }
+            
+            list.innerHTML = positions.map((pos, index) => {
+                const pnl = (btcPrice - pos.entryPrice) * pos.amount * pos.leverage;
+                const pnlPct = ((btcPrice - pos.entryPrice) / pos.entryPrice * 100);
+                
+                return `
+                    <div class="position-item">
+                        <div class="position-header">
+                            <span class="symbol">${pos.symbol}</span>
+                            <span class="type ${pos.type}">${pos.type === 'long' ? '做多' : '做空'} ${pos.leverage}x</span>
+                        </div>
+                        <div class="position-details">
+                            <div>
+                                <div class="label">數量</div>
+                                <div>${pos.amount.toFixed(6)} BTC</div>
+                            </div>
+                            <div>
+                                <div class="label">開倉價</div>
+                                <div>$${pos.entryPrice.toFixed(2)}</div>
+                            </div>
+                            <div>
+                                <div class="label">現價</div>
+                                <div>$${btcPrice.toFixed(2)}</div>
+                            </div>
+                            <div>
+                                <div class="label">盈虧</div>
+                                <div style="color: ${pnl >= 0 ? '#0ecb81' : '#f6465d'}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnlPct.toFixed(2)}%)</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Draw Chart
+        function drawChart() {
+            const canvas = document.getElementById('priceChart');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            const minPrice = Math.min(...priceHistory);
+            const maxPrice = Math.max(...priceHistory);
+            const range = maxPrice - minPrice;
+            
+            // Draw grid
+            ctx.strokeStyle = '#2b3139';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 5; i++) {
+                const y = (height / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+            
+            // Draw price line
+            const isUp = priceHistory[priceHistory.length - 1] >= priceHistory[0];
+            ctx.strokeStyle = isUp ? '#0ecb81' : '#f6465d';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            priceHistory.forEach((price, i) => {
+                const x = (i / (priceHistory.length - 1)) * width;
+                const y = height - ((price - minPrice) / range) * height;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            ctx.stroke();
+            
+            // Fill gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, isUp ? 'rgba(14, 203, 129, 0.3)' : 'rgba(246, 70, 93, 0.3)');
+            gradient.addColorStop(1, isUp ? 'rgba(14, 203, 129, 0)' : 'rgba(246, 70, 93, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.lineTo(width, height);
+            ctx.lineTo(0, height);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Initial draw
+        drawChart();
+        window.addEventListener('resize', drawChart);
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
 </body>
 </html>

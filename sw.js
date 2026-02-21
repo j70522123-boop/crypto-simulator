@@ -1,4 +1,4 @@
-const CACHE_NAME = 'crypto-simulator-v3';
+const CACHE_NAME = 'crypto-simulator-v4';
 const urlsToCache = [
   '/crypto-simulator/',
   '/crypto-simulator/index.html',
