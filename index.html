@@ -20,6 +20,95 @@
             min-height: 100vh;
         }
         
+        /* Modal */
+        .modal {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 14, 17, 0.95);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.hidden {
+            display: none;
+        }
+        
+        .modal-content {
+            background: #1a1d29;
+            padding: 40px;
+            border-radius: 16px;
+            max-width: 900px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .modal-content h2 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #f0b90b;
+        }
+        
+        .modal-desc {
+            color: #848e9c;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .mode-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .mode-card {
+            background: #2b3139;
+            padding: 25px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .mode-card:hover {
+            border-color: #f0b90b;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(240, 185, 11, 0.2);
+        }
+        
+        .mode-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .mode-card h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #eaecef;
+        }
+        
+        .mode-amount {
+            font-size: 18px;
+            color: #f0b90b;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .mode-features {
+            list-style: none;
+            text-align: left;
+            font-size: 14px;
+            color: #848e9c;
+        }
+        
+        .mode-features li {
+            margin-bottom: 8px;
+        }
+        
         /* Header */
         .header {
             background: #1a1d29;
@@ -442,6 +531,60 @@
     </style>
 </head>
 <body>
+    <!-- Start Mode Modal -->
+    <div id="startModal" class="modal">
+        <div class="modal-content">
+            <h2>🎮 選擇開局模式</h2>
+            <p class="modal-desc">選擇你的起始資金和交易風格</p>
+            
+            <div class="mode-cards">
+                <div class="mode-card" onclick="selectMode('beginner')">
+                    <div class="mode-icon">🌱</div>
+                    <h3>新手模式</h3>
+                    <p class="mode-amount">起始資金: $10,000</p>
+                    <ul class="mode-features">
+                        <li>✓ 低風險練習</li>
+                        <li>✓ 無槓桿限制</li>
+                        <li>✓ 適合初學者</li>
+                    </ul>
+                </div>
+                
+                <div class="mode-card" onclick="selectMode('trader')">
+                    <div class="mode-icon">📈</div>
+                    <h3>交易員模式</h3>
+                    <p class="mode-amount">起始資金: $100,000</p>
+                    <ul class="mode-features">
+                        <li>✓ 中等風險</li>
+                        <li>✓ 最高 50x 槓桿</li>
+                        <li>✓ 適合有經驗者</li>
+                    </ul>
+                </div>
+                
+                <div class="mode-card" onclick="selectMode('degen')">
+                    <div class="mode-icon">🚀</div>
+                    <h3>賭徒模式</h3>
+                    <p class="mode-amount">起始資金: $1,000</p>
+                    <ul class="mode-features">
+                        <li>✓ 高風險高回報</li>
+                        <li>✓ 最高 100x 槓桿</li>
+                        <li>✓ 適合冒險家</li>
+                    </ul>
+                </div>
+                
+                <div class="mode-card" onclick="selectMode('whale')">
+                    <div class="mode-icon">🐋</div>
+                    <h3>巨鯨模式</h3>
+                    <p class="mode-amount">起始資金: $10,000,000</p>
+                    <ul class="mode-features">
+                        <li>✓ 大額交易</li>
+                        <li>✓ 市場影響力</li>
+                        <li>✓ 土豪專屬</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <header class="header">
         <div class="logo">⚡ 幣圈模擬器</div>
         <nav class="nav-links">
@@ -545,9 +688,50 @@
     </div>
 
     <script>
+        // Start Mode Selection
+        function selectMode(mode) {
+            const modes = {
+                beginner: { balance: 10000, maxLeverage: 100, name: '新手模式' },
+                trader: { balance: 100000, maxLeverage: 50, name: '交易員模式' },
+                degen: { balance: 1000, maxLeverage: 100, name: '賭徒模式' },
+                whale: { balance: 10000000, maxLeverage: 20, name: '巨鯨模式' }
+            };
+            
+            const selected = modes[mode];
+            usdtBalance = selected.balance;
+            maxLeverage = selected.maxLeverage;
+            currentMode = selected.name;
+            
+            // Hide modal
+            document.getElementById('startModal').classList.add('hidden');
+            
+            // Update UI
+            updateTotalValue();
+            updateLeverageButtons();
+            
+            // Show welcome message
+            setTimeout(() => {
+                alert(`🎉 歡迎來到${selected.name}！\n起始資金: $${selected.balance.toLocaleString()}\n祝你好運！`);
+            }, 100);
+        }
+        
+        function updateLeverageButtons() {
+            const buttons = document.querySelectorAll('.leverage-btn');
+            buttons.forEach(btn => {
+                const lev = parseInt(btn.dataset.leverage);
+                if (lev > maxLeverage) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.3';
+                    btn.style.cursor = 'not-allowed';
+                }
+            });
+        }
+        
         // State
         let currentTab = 'buy';
         let leverage = 1;
+        let maxLeverage = 100;
+        let currentMode = '新手模式';
         let btcPrice = 45234.56;
         let previousPrice = 45234.56;
         let usdtBalance = 10000;
