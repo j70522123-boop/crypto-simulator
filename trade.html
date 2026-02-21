@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0b0e11">
+    <title>幣圈模擬器 - 交易</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/Icon-192.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0e11; color: #eaecef; min-height: 100vh; touch-action: manipulation; }
+        canvas { touch-action: none; }
+        .esports-hud { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #1a1d29 0%, #2b3139 100%); border: 2px solid #f0b90b; border-radius: 12px; padding: 12px 25px; display: flex; gap: 30px; z-index: 100; box-shadow: 0 4px 20px rgba(240, 185, 11, 0.3); }
+        .esports-hud.hidden { display: none; }
+        .hud-item { text-align: center; }
+        .hud-label { display: block; font-size: 11px; color: #848e9c; margin-bottom: 3px; }
+        .hud-value { display: block; font-size: 18px; font-weight: bold; color: #f0b90b; }
+        .hud-value.warning { color: #f6465d; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes fadeInOut { 0% { opacity: 0; transform: translateX(-50%) translateY(-10px); } 20% { opacity: 1; transform: translateX(-50%) translateY(0); } 80% { opacity: 1; transform: translateX(-50%) translateY(0); } 100% { opacity: 0; transform: translateX(-50%) translateY(-10px); } }
+        .header { background: #1a1d29; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2b3139; }
+        .logo { font-size: 20px; font-weight: bold; color: #f0b90b; cursor: pointer; }
+        .mode-badge { background: #2b3139; padding: 4px 12px; border-radius: 12px; font-size: 12px; color: #848e9c; }
+        .main-container { display: flex; max-width: 1400px; margin: 0 auto; padding: 20px; gap: 20px; }
+        .chart-section { flex: 1; background: #1a1d29; border-radius: 8px; padding: 20px; }
+        .symbol-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .symbol-info h1 { font-size: 22px; margin-bottom: 5px; }
+        .symbol-info .price { font-size: 28px; font-weight: bold; }
+        .symbol-info .price.up { color: #0ecb81; }
+        .symbol-info .price.down { color: #f6465d; }
+        .change { font-size: 14px; margin-top: 5px; }
+        .change.up { color: #0ecb81; }
+        .change.down { color: #f6465d; }
+        .chart-container { height: 420px; background: #0b0e11; border-radius: 8px; position: relative; overflow: hidden; }
+        .chart-toolbar { display: flex; gap: 5px; padding: 8px 10px; background: #1a1d29; border-bottom: 1px solid #2b3139; }
+        .chart-btn { padding: 5px 10px; background: transparent; border: 1px solid #3d4654; color: #848e9c; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .chart-btn.active { background: #f0b90b; color: #0b0e11; border-color: #f0b90b; }
+        .chart-info { display: flex; gap: 15px; padding: 8px 10px; background: #0b0e11; font-size: 12px; flex-wrap: wrap; }
+        .chart-info-item { display: flex; gap: 4px; }
+        .chart-info-label { color: #848e9c; }
+        .chart-info-value { color: #eaecef; font-weight: 500; }
+        .chart-info-value.up { color: #0ecb81; }
+        .chart-info-value.down { color: #f6465d; }
+        #priceChart { width: 100%; height: calc(100% - 80px); }
+        .trading-section { width: 320px; background: #1a1d29; border-radius: 8px; padding: 20px; }
+        .tabs { display: flex; margin-bottom: 15px; border-bottom: 1px solid #2b3139; }
+        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; }
+        .tab.active.buy { color: #0ecb81; border-bottom-color: #0ecb81; }
+        .tab.active.sell { color: #f6465d; border-bottom-color: #f6465d; }
+        .balance-section { background: #2b3139; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .balance-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+        .balance-row .label { color: #848e9c; }
+        .total-value { font-size: 22px; font-weight: bold; color: #f0b90b; margin-top: 10px; padding-top: 10px; border-top: 1px solid #3d4654; }
+        .leverage-section { margin-bottom: 15px; }
+        .leverage-label { font-size: 14px; color: #848e9c; margin-bottom: 8px; }
+        .leverage-buttons { display: flex; gap: 5px; flex-wrap: wrap; }
+        .leverage-btn { flex: 1; padding: 8px; border: 1px solid #3d4654; background: transparent; color: #eaecef; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .leverage-btn.active { background: #f0b90b; color: #0b0e11; border-color: #f0b90b; }
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 13px; color: #848e9c; margin-bottom: 6px; }
+        .input-wrapper { display: flex; background: #2b3139; border: 1px solid #3d4654; border-radius: 4px; overflow: hidden; }
+        .input-wrapper input { flex: 1; background: transparent; border: none; padding: 10px; color: #eaecef; font-size: 15px; outline: none; }
+        .input-wrapper .unit { padding: 10px 12px; background: #3d4654; color: #848e9c; font-size: 13px; }
+        .percentage-buttons { display: flex; gap: 5px; margin-top: 6px; }
+        .percentage-btn { flex: 1; padding: 5px; border: 1px solid #3d4654; background: transparent; color: #848e9c; border-radius: 4px; cursor: pointer; font-size: 11px; }
+        .percentage-btn:hover { border-color: #f0b90b; color: #f0b90b; }
+        .trade-btn { width: 100%; padding: 14px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
+        .trade-btn.buy { background: #0ecb81; color: white; }
+        .trade-btn.sell { background: #f6465d; color: white; }
+        .trade-btn:hover { opacity: 0.9; }
+        .positions-section { margin-top: 15px; padding-top: 15px; border-top: 1px solid #2b3139; }
+        .positions-section h3 { font-size: 15px; margin-bottom: 12px; color: #848e9c; }
+        .position-item { background: #2b3139; padding: 12px; border-radius: 8px; margin-bottom: 8px; }
+        .position-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .position-header .type { padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+        .position-header .type.long { background: rgba(14, 203, 129, 0.2); color: #0ecb81; }
+        .position-details { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; }
+        .position-details .label { color: #848e9c; }
+        .disclaimer { background: rgba(240, 185, 11, 0.1); border: 1px solid rgba(240, 185, 11, 0.3); padding: 10px; border-radius: 8px; margin-top: 15px; font-size: 11px; color: #f0b90b; text-align: center; }
+        @media (max-width: 900px) { .main-container { flex-direction: column; } .trading-section { width: 100%; } }
+    </style>
+</head>
+<body>
+    <div id="esportsHUD" class="esports-hud hidden">
+        <div class="hud-item"><span class="hud-label">⏱️ 時間</span><span class="hud-value" id="timer">30:00</span></div>
+        <div class="hud-item"><span class="hud-label">🏆 排名</span><span class="hud-value" id="rank">#1</span></div>
+        <div class="hud-item"><span class="hud-label">📈 報酬率</span><span class="hud-value" id="roi">+0.00%</span></div>
+    </div>
+
+    <header class="header">
+        <div class="logo" onclick="goHome()">⚡ 幣圈模擬器</div>
+        <div class="mode-badge" id="modeBadge">新手模式</div>
+    </header>
+
+    <div class="main-container">
+        <div class="chart-section">
+            <div class="symbol-header">
+                <div class="symbol-info">
+                    <h1>BTC/USDT</h1>
+                    <div class="price up" id="currentPrice">$45,234.56</div>
+                    <div class="change up" id="priceChange">+1.23%</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-toolbar">
+                    <button class="chart-btn active" onclick="changeTimeframe('1m', this)">1分</button>
+                    <button class="chart-btn" onclick="changeTimeframe('5m', this)">5分</button>
+                    <button class="chart-btn" onclick="changeTimeframe('15m', this)">15分</button>
+                    <button class="chart-btn" onclick="changeTimeframe('1h', this)">1小時</button>
+                    <button class="chart-btn" onclick="changeTimeframe('4h', this)">4小時</button>
+                    <button class="chart-btn" onclick="changeTimeframe('1d', this)">1天</button>
+                </div>
+                <div class="chart-info">
+                    <div class="chart-info-item"><span class="chart-info-label">開:</span><span class="chart-info-value" id="candleOpen">-</span></div>
+                    <div class="chart-info-item"><span class="chart-info-label">高:</span><span class="chart-info-value up" id="candleHigh">-</span></div>
+                    <div class="chart-info-item"><span class="chart-info-label">低:</span><span class="chart-info-value down" id="candleLow">-</span></div>
+                    <div class="chart-info-item"><span class="chart-info-label">收:</span><span class="chart-info-value" id="candleClose">-</span></div>
+                    <div class="chart-info-item"><span class="chart-info-label">成交量:</span><span class="chart-info-value" id="candleVolume">-</span></div>
+                </div>
+                <canvas id="priceChart"></canvas>
+            </div>
+        </div>
+
+        <div class="trading-section">
+            <div class="tabs">
+                <div class="tab active buy" onclick="switchTab('buy')">買入</div>
+                <div class="tab sell" onclick="switchTab('sell')">賣出</div>
+            </div>
+
+            <div class="balance-section">
+                <div class="balance-row"><span class="label">可用餘額</span><span class="value" id="usdtBalance">10,000.00 USDT</span></div>
+                <div class="balance-row"><span class="label">BTC 持倉</span><span class="value" id="btcBalance">0.000000 BTC</span></div>
+                <div class="total-value">總資產: $<span id="totalValue">10,000.00</span></div>
+            </div>
+
+            <div class="leverage-section">
+                <div class="leverage-label">槓桿倍數</div>
+                <div class="leverage-buttons">
+                    <button class="leverage-btn active" data-leverage="1">1x</button>
+                    <button class="leverage-btn" data-leverage="5">5x</button>
+                    <button class="leverage-btn" data-leverage="10">10x</button>
+                    <button class="leverage-btn" data-leverage="20">20x</button>
+                    <button class="leverage-btn" data-leverage="50">50x</button>
+                    <button class="leverage-btn" data-leverage="100">100x</button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>數量 (BTC)</label>
+                <div class="input-wrapper">
+                    <input type="number" id="orderAmount" placeholder="0.00" step="0.000001">
+                    <span class="unit">BTC</span>
+                </div>
+                <div class="percentage-buttons">
+                    <button class="percentage-btn" onclick="setPercentage(25)">25%</button>
+                    <button class="percentage-btn" onclick="setPercentage(50)">50%</button>
+                    <button class="percentage-btn" onclick="setPercentage(75)">75%</button>
+                    <button class="percentage-btn" onclick="setPercentage(100)">100%</button>
+                </div>
+            </div>
+
+            <button class="trade-btn buy" id="tradeButton" onclick="executeTrade()">買入 BTC</button>
+
+            <div class="positions-section">
+                <h3>當前持倉</h3>
+                <div id="positionsList"><p style="color: #848e9c; text-align: center; padding: 20px;">尚無持倉</p></div>
+            </div>
+
+            <div class="disclaimer">⚠️ 本 App 僅供娛樂和學習用途</div>
+        </div>
+    </div>
+
+    <script>
+        // Load game mode
+        const gameMode = JSON.parse(localStorage.getItem('gameMode') || '{}');
+        if (!gameMode.mode) {
+            window.location.href = 'index.html';
+        }
+        
+        // Update UI with mode
+        document.getElementById('modeBadge').textContent = gameMode.name || '新手模式';
+        
+        // State
+        let currentTab = 'buy', leverage = 1, maxLeverage = gameMode.maxLeverage || 100;
+        let btcPrice = 45234.56, previousPrice = 45234.56;
+        let usdtBalance = gameMode.balance || 10000, btcBalance = 0;
+        let positions = [], candleData = [], currentCandle = null;
+        let timeRemaining = 1800, esportsTimer = null, roi = 0;
+        let hoveredCandle = null;
+        
+        // Show esports HUD if needed
+        if (gameMode.mode === 'esports') {
+            document.getElementById('esportsHUD').classList.remove('hidden');
+            startEsports();
+        }
+        
+        function startEsports() {
+            timeRemaining = gameMode.timeLimit || 1800;
+            esportsTimer = setInterval(() => {
+                timeRemaining--;
+                const min = Math.floor(timeRemaining / 60), sec = timeRemaining % 60;
+                document.getElementById('timer').textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+                if (timeRemaining <= 60) document.getElementById('timer').classList.add('warning');
+                
+                const currentValue = usdtBalance + (btcBalance * btcPrice);
+                roi = ((currentValue - gameMode.balance) / gameMode.balance) * 100;
+                document.getElementById('roi').textContent = (roi >= 0 ? '+' : '') + roi.toFixed(2) + '%';
+                
+                let rank = roi < 0 ? Math.floor(Math.random() * 50) + 50 : roi < 20 ? Math.floor(Math.random() * 20) + 10 : Math.floor(Math.random() * 5) + 1;
+                document.getElementById('rank').textContent = '#' + rank;
+                
+                if (timeRemaining <= 0) clearInterval(esportsTimer);
+            }, 1000);
+        }
+        
+        // Initialize candles
+        function initCandles() {
+            let price = 44800;
+            for (let i = 0; i < 40; i++) {
+                const open = price;
+                const change = (Math.random() - 0.5) * 300;
+                const close = open + change;
+                const high = Math.max(open, close) + Math.random() * 100;
+                const low = Math.min(open, close) - Math.random() * 100;
+                candleData.push({ open, high, low, close, volume: Math.random() * 50 + 20 });
+                price = close;
+            }
+            currentCandle = { open: price, high: price, low: price, close: price, volume: 0 };
+            btcPrice = price;
+            updateCandleInfo();
+        }
+        
+        // Update price
+        setInterval(() => {
+            previousPrice = btcPrice;
+            btcPrice += (Math.random() - 0.5) * 50;
+            currentCandle.close = btcPrice;
+            currentCandle.high = Math.max(currentCandle.high, btcPrice);
+            currentCandle.low = Math.min(currentCandle.low, btcPrice);
+            currentCandle.volume += Math.random() * 5;
+            
+            if (Math.random() < 0.15) {
+                candleData.push({...currentCandle});
+                if (candleData.length > 50) candleData.shift();
+                currentCandle = { open: btcPrice, high: btcPrice, low: btcPrice, close: btcPrice, volume: 0 };
+            }
+            
+            updatePriceDisplay();
+            updateCandleInfo();
+            drawCandleChart();
+        }, 2000);
+        
+        function updatePriceDisplay() {
+            const change = ((btcPrice - previousPrice) / previousPrice * 100);
+            document.getElementById('currentPrice').textContent = '$' + btcPrice.toFixed(2);
+            document.getElementById('priceChange').textContent = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+            document.getElementById('currentPrice').className = 'price ' + (change >= 0 ? 'up' : 'down');
+            document.getElementById('priceChange').className = 'change ' + (change >= 0 ? 'up' : 'down');
+            updateTotalValue();
+        }
+        
+        function updateCandleInfo() {
+            const last = candleData[candleData.length - 1];
+            document.getElementById('candleOpen').textContent = last.open.toFixed(2);
+            document.getElementById('candleHigh').textContent = last.high.toFixed(2);
+            document.getElementById('candleLow').textContent = last.low.toFixed(2);
+            document.getElementById('candleClose').textContent = last.close.toFixed(2);
+            document.getElementById('candleVolume').textContent = last.volume.toFixed(2) + ' BTC';
+            document.getElementById('candleClose').className = 'chart-info-value ' + (last.close >= last.open ? 'up' : 'down');
+        }
+        
+        function drawCandleChart() {
+            const canvas = document.getElementById('priceChart');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            const w = canvas.width, h = canvas.height;
+            const padding = { top: 10, right: 60, bottom: 20, left: 10 };
+            const cw = w - padding.left - padding.right;
+            const ch = h - padding.top - padding.bottom;
+            
+            ctx.clearRect(0, 0, w, h);
+            
+            let minP = Infinity, maxP = -Infinity;
+            candleData.forEach(c => { minP = Math.min(minP, c.low); maxP = Math.max(maxP, c.high); });
+            const range = maxP - minP;
+            const scale = ch / range;
+            
+            ctx.strokeStyle = '#2b3139';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            for (let i = 0; i <= 5; i++) {
+                const y = padding.top + (ch / 5) * i;
+                ctx.beginPath(); ctx.moveTo(padding.left, y); ctx.lineTo(w - padding.right, y); ctx.stroke();
+                const price = maxP - (range / 5) * i;
+                ctx.fillStyle = '#848e9c'; ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+                ctx.fillText(price.toFixed(0), w - padding.right + 5, y + 3);
+            }
+            ctx.setLineDash([]);
+            
+            const candleW = (cw / candleData.length) * 0.7;
+            const spacing = cw / candleData.length;
+            
+            candleData.forEach((c, i) => {
+                const x = padding.left + i * spacing + spacing / 2;
+                const isUp = c.close >= c.open;
+                const isHovered = (i === hoveredCandle);
+                const color = isUp ? '#0ecb81' : '#f6465d';
+                
+                const oy = padding.top + (maxP - c.open) * scale;
+                const cy = padding.top + (maxP - c.close) * scale;
+                const hy = padding.top + (maxP - c.high) * scale;
+                const ly = padding.top + (maxP - c.low) * scale;
+                
+                if (isHovered) {
+                    ctx.fillStyle = 'rgba(240, 185, 11, 0.2)';
+                    ctx.fillRect(x - spacing/2, padding.top, spacing, ch);
+                }
+                
+                ctx.strokeStyle = isHovered ? '#f0b90b' : color;
+                ctx.lineWidth = isHovered ? 2 : 1;
+                ctx.beginPath(); ctx.moveTo(x, hy); ctx.lineTo(x, ly); ctx.stroke();
+                
+                ctx.fillStyle = isHovered ? '#f0b90b' : color;
+                const top = Math.min(oy, cy);
+                const height = Math.max(Math.abs(cy - oy), 1);
+                ctx.fillRect(x - candleW / 2, top, candleW, height);
+            });
+        }
+        
+        function setupCandleInteraction() {
+            const canvas = document.getElementById('priceChart');
+            
+            canvas.addEventListener('mousemove', (e) => { handleCanvasMove(e.clientX, e.clientY, canvas); });
+            canvas.addEventListener('mouseleave', () => { hoveredCandle = null; drawCandleChart(); hideCandleTooltip(); });
+            canvas.addEventListener('click', (e) => { handleCanvasClick(e.clientX, canvas); });
+            
+            canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleCanvasMove(e.touches[0].clientX, e.touches[0].clientY, canvas); }, { passive: false });
+            canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleCanvasMove(e.touches[0].clientX, e.touches[0].clientY, canvas); }, { passive: false });
+            canvas.addEventListener('touchend', (e) => { e.preventDefault(); handleCanvasClick(e.changedTouches[0].clientX, canvas); hideCandleTooltip(); }, { passive: false });
+        }
+        
+        function handleCanvasMove(clientX, clientY, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const w = canvas.width, h = canvas.height;
+            const padding = { top: 10, right: 60, bottom: 20, left: 10 };
+            const cw = w - padding.left - padding.right;
+            const spacing = cw / candleData.length;
+            const candleIndex = Math.floor((x - padding.left) / spacing);
+            
+            if (candleIndex >= 0 && candleIndex < candleData.length) {
+                hoveredCandle = candleIndex;
+                drawCandleChart();
+                showCandleTooltip(candleData[candleIndex], clientX, clientY);
+            } else {
+                hoveredCandle = null;
+                drawCandleChart();
+                hideCandleTooltip();
+            }
+        }
+        
+        function handleCanvasClick(clientX, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const w = canvas.width;
+            const padding = { top: 10, right: 60, bottom: 20, left: 10 };
+            const cw = w - padding.left - padding.right;
+            const spacing = cw / candleData.length;
+            const candleIndex = Math.floor((x - padding.left) / spacing);
+            
+            if (candleIndex >= 0 && candleIndex < candleData.length) {
+                selectCandle(candleData[candleIndex], candleIndex);
+            }
+        }
+        
+        function showCandleTooltip(candle, mouseX, mouseY) {
+            let tooltip = document.getElementById('candleTooltip');
+            if (!tooltip) {
+                tooltip = document.createElement('div');
+                tooltip.id = 'candleTooltip';
+                tooltip.style.cssText = 'position: fixed; background: #1a1d29; border: 1px solid #3d4654; border-radius: 8px; padding: 12px; font-size: 12px; z-index: 1000; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5);';
+                document.body.appendChild(tooltip);
+            }
+            
+            const isUp = candle.close >= candle.open;
+            const change = ((candle.close - candle.open) / candle.open * 100);
+            
+            tooltip.innerHTML = `
+                <div style="color: #848e9c; margin-bottom: 5px;">時間: ${new Date().toLocaleTimeString()}</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div><span style="color: #848e9c;">開:</span> <span style="color: ${isUp ? '#0ecb81' : '#f6465d'};">$${candle.open.toFixed(2)}</span></div>
+                    <div><span style="color: #848e9c;">高:</span> <span style="color: #0ecb81;">$${candle.high.toFixed(2)}</span></div>
+                    <div><span style="color: #848e9c;">低:</span> <span style="color: #f6465d;">$${candle.low.toFixed(2)}</span></div>
+                    <div><span style="color: #848e9c;">收:</span> <span style="color: ${isUp ? '#0ecb81' : '#f6465d'};">$${candle.close.toFixed(2)}</span></div>
+                </div>
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #3d4654;">
+                    <span style="color: #848e9c;">漲跌: </span>
+                    <span style="color: ${isUp ? '#0ecb81' : '#f6465d'}; font-weight: bold;">${isUp ? '+' : ''}${change.toFixed(2)}%</span>
+                </div>
+                <div style="margin-top: 5px;"><span style="color: #848e9c;">成交量: </span><span style="color: #eaecef;">${candle.volume.toFixed(2)} BTC</span></div>
+            `;
+            
+            tooltip.style.left = (mouseX + 15) + 'px';
+            tooltip.style.top = (mouseY - 10) + 'px';
+            tooltip.style.display = 'block';
+        }
+        
+        function hideCandleTooltip() {
+            const tooltip = document.getElementById('candleTooltip');
+            if (tooltip) tooltip.style.display = 'none';
+        }
+        
+        function selectCandle(candle, index) {
+            document.getElementById('candleOpen').textContent = candle.open.toFixed(2);
+            document.getElementById('candleHigh').textContent = candle.high.toFixed(2);
+            document.getElementById('candleLow').textContent = candle.low.toFixed(2);
+            document.getElementById('candleClose').textContent = candle.close.toFixed(2);
+            document.getElementById('candleVolume').textContent = candle.volume.toFixed(2) + ' BTC';
+            document.getElementById('candleClose').className = 'chart-info-value ' + (candle.close >= candle.open ? 'up' : 'down');
+            showNotification(`已選擇第 ${index + 1} 根K線`);
+        }
+        
+        function showNotification(msg) {
+            const notif = document.createElement('div');
+            notif.style.cssText = 'position: fixed; top: 130px; left: 50%; transform: translateX(-50%); background: #f0b90b; color: #0b0e11; padding: 10px 20px; border-radius: 6px; font-weight: bold; z-index: 1000; animation: fadeInOut 2s ease;';
+            notif.textContent = msg;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 2000);
+        }
+        
+        function changeTimeframe(tf, btn) {
+            document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            showNotification(`切換到 ${tf} 時間週期`);
+            regenerateCandles();
+        }
+        
+        function regenerateCandles() {
+            candleData = [];
+            let price = 44800;
+            for (let i = 0; i < 40; i++) {
+                const open = price;
+                const change = (Math.random() - 0.5) * 300;
+                const close = open + change;
+                const high = Math.max(open, close) + Math.random() * 100;
+                const low = Math.min(open, close) - Math.random() * 100;
+                candleData.push({ open, high, low, close, volume: Math.random() * 50 + 20 });
+                price = close;
+            }
+            currentCandle = { open: price, high: price, low: price, close: price, volume: 0 };
+            btcPrice = price;
+            updateCandleInfo();
+            drawCandleChart();
+        }
+        
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active', 'buy', 'sell'));
+            event.target.classList.add('active', tab);
+            const btn = document.getElementById('tradeButton');
+            btn.className = 'trade-btn ' + tab;
+            btn.textContent = (tab === 'buy' ? '買入' : '賣出') + ' BTC';
+        }
+        
+        document.querySelectorAll('.leverage-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.leverage-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                leverage = parseInt(btn.dataset.leverage);
+            });
+        });
+        
+        function setPercentage(pct) {
+            const amount = currentTab === 'buy' ? (usdtBalance * pct / 100) / btcPrice * leverage : btcBalance * pct / 100;
+            document.getElementById('orderAmount').value = amount.toFixed(6);
+        }
+        
+        function executeTrade() {
+            const amount = parseFloat(document.getElementById('orderAmount').value) || 0;
+            if (amount <= 0) return alert('請輸入數量');
+            
+            if (currentTab === 'buy') {
+                const cost = (amount * btcPrice) / leverage;
+                if (cost > usdtBalance) return alert('餘額不足');
+                usdtBalance -= cost; btcBalance += amount;
+                positions.push({ symbol: 'BTC/USDT', type: 'long', amount, entryPrice: btcPrice, leverage });
+            } else {
+                if (amount > btcBalance) return alert('BTC 不足');
+                usdtBalance += (amount * btcPrice) / leverage; btcBalance -= amount;
+            }
+            updateTotalValue(); updatePositions(); document.getElementById('orderAmount').value = '';
+        }
+        
+        function updateTotalValue() {
+            const total = usdtBalance + (btcBalance * btcPrice);
+            document.getElementById('totalValue').textContent = total.toFixed(2);
+            document.getElementById('usdtBalance').textContent = usdtBalance.toFixed(2) + ' USDT';
+            document.getElementById('btcBalance').textContent = btcBalance.toFixed(6) + ' BTC';
+        }
+        
+        function updatePositions() {
+            const list = document.getElementById('positionsList');
+            if (positions.length === 0) { list.innerHTML = '<p style="color: #848e9c; text-align: center; padding: 20px;">尚無持倉</p>'; return; }
+            list.innerHTML = positions.map(pos => {
+                const pnl = (btcPrice - pos.entryPrice) * pos.amount * pos.leverage;
+                return `<div class="position-item"><div class="position-header"><span>${pos.symbol}</span><span class="type long">做多 ${pos.leverage}x</span></div><div class="position-details"><div><div class="label">數量</div><div>${pos.amount.toFixed(4)} BTC</div></div><div><div class="label">盈虧</div><div style="color: ${pnl >= 0 ? '#0ecb81' : '#f6465d'}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</div></div></div></div>`;
+            }).join('');
+        }
+        
+        function goHome() {
+            if (confirm('確定要返回主頁嗎？當前進度將會儲存。')) {
+                window.location.href = 'index.html';
+            }
+        }
+        
+        // Init
+        window.onload = function() {
+            initCandles();
+            drawCandleChart();
+            setupCandleInteraction();
+            updateTotalValue();
+        };
+        window.addEventListener('resize', drawCandleChart);
+    </script>
+</body>
+</html>
