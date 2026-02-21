@@ -275,9 +275,25 @@
         
         function drawCandleChart() {
             const canvas = document.getElementById('priceChart');
+            if (!canvas) { console.error('Canvas not found'); return; }
+            
             const ctx = canvas.getContext('2d');
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+            if (!ctx) { console.error('Cannot get canvas context'); return; }
+            
+            // Set canvas size
+            const container = canvas.parentElement;
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight - 80; // Subtract toolbar height
+            
+            if (canvas.width === 0 || canvas.height === 0) {
+                console.error('Canvas has zero size');
+                return;
+            }
+            
+            if (candleData.length === 0) {
+                console.error('No candle data');
+                return;
+            }
             
             const w = canvas.width, h = canvas.height;
             const padding = { top: 10, right: 60, bottom: 20, left: 10 };
@@ -288,6 +304,12 @@
             
             let minP = Infinity, maxP = -Infinity;
             candleData.forEach(c => { minP = Math.min(minP, c.low); maxP = Math.max(maxP, c.high); });
+            
+            if (minP === Infinity || maxP === -Infinity || minP === maxP) {
+                console.error('Invalid price range');
+                return;
+            }
+            
             const range = maxP - minP;
             const scale = ch / range;
             
@@ -521,10 +543,20 @@
         
         // Init
         window.onload = function() {
-            initCandles();
-            drawCandleChart();
-            setupCandleInteraction();
-            updateTotalValue();
+            try {
+                console.log('Initializing...');
+                initCandles();
+                console.log('Candles initialized:', candleData.length);
+                drawCandleChart();
+                console.log('Chart drawn');
+                setupCandleInteraction();
+                console.log('Interaction setup');
+                updateTotalValue();
+                console.log('Total value updated');
+            } catch (e) {
+                console.error('Initialization error:', e);
+                alert('載入錯誤: ' + e.message);
+            }
         };
         window.addEventListener('resize', drawCandleChart);
     </script>
